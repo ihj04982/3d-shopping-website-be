@@ -5,10 +5,12 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
+const indexRouter = require("./routes");
 
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use("/api", indexRouter);
 
 const mongoUrl = process.env.LOCAL_DB_ADDRESS;
 
