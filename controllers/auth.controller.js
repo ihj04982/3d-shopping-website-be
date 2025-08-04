@@ -1,6 +1,9 @@
 const authController = {};
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+const jwtSecretKey = process.env.JWT_SECRET_KEY;
 
 authController.loginWithEmail = async (req, res) => {
     try {
@@ -19,6 +22,26 @@ authController.loginWithEmail = async (req, res) => {
         } else {
             throw new Error("존재하지 않는 이메일입니다.");
         }
+    } catch (error) {
+        res.status(400).json({ status: "error", message: error.message });
+    }
+};
+
+authController.authenticate = (req, res, next) => {
+    try {
+        const tokenString = req.headers.authorization;
+        if (!tokenString) {
+            throw new Error("토큰이 없습니다.");
+        }
+        const token = tokenString.replace("Bearer ", "");
+
+        jwt.verify(token, jwtSecretKey, (error, payload) => {
+            if (error) {
+                throw new Error("토큰이 유효하지 않습니다.");
+            }
+            req.userId = payload._id;
+            next();
+        });
     } catch (error) {
         res.status(400).json({ status: "error", message: error.message });
     }
