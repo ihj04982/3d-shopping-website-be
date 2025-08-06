@@ -135,3 +135,6 @@ public/uploads/
 build/
 dist/
         
+
+.cursor
+.vooster
