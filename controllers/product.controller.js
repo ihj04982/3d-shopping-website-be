@@ -17,6 +17,15 @@ productController.createProduct = async (req, res) => {
         });
         res.status(200).json({ status: "success", product });
     } catch (error) {
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            const value = error.keyValue[field];
+            return res.status(409).json({
+                status: "error",
+                message: `${field === "sku" ? "SKU" : field} "${value}"는 이미 존재합니다.`,
+            });
+        }
+
         res.status(400).json({ status: "error", message: error.message });
     }
 };
