@@ -9,6 +9,7 @@ cartController.addItemToCart = async (req, res) => {
         if (!cart) {
             const newCart = new Cart({ userId, items: [{ productId, color, qty }] });
             await newCart.save();
+            return res.status(200).json({ status: "success", data: newCart, cartItemQty: newCart.items.length });
         }
         const existingItem = cart.items.find((item) => item.productId.equals(productId) && item.color === color);
         if (existingItem) {
@@ -46,6 +47,9 @@ cartController.getCart = async (req, res) => {
                 model: "Product",
             },
         });
+        if (!cart) {
+            return res.status(200).json({ status: "success", data: [] });
+        }
         res.status(200).json({ status: "success", data: cart.items });
     } catch (error) {
         res.status(400).json({ status: "error", message: error.message });
