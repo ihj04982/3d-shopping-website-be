@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+const Cart = require("./Cart");
 
 const orderSchema = new Schema(
     {
@@ -18,11 +19,11 @@ const orderSchema = new Schema(
             default: 0,
         },
         shipTo: {
-            type: String,
+            type: Object,
             required: true,
         },
         contact: {
-            type: String,
+            type: Object,
             required: true,
         },
         orderNum: {
@@ -63,4 +64,9 @@ orderSchema.methods.toJSON = function () {
     return obj;
 };
 
+orderSchema.post("save", async function () {
+    const cart = await Cart.findOne({ userId: this.userId });
+    cart.items = [];
+    await cart.save();
+});
 module.exports = mongoose.model("Order", orderSchema);

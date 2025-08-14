@@ -94,4 +94,33 @@ productController.deleteProduct = async (req, res) => {
         res.status(400).json({ status: "error", message: error.message });
     }
 };
+productController.checkStock = async (item) => {
+    const product = await Product.findById(item.productId);
+
+    if (product.stock[item.color] < item.qty) {
+        return { isVerified: false, message: `${product.name} ${item.color} 색상의 재고가 부족합니다.` };
+    }
+    const newStock = { ...product.stock };
+    newStock[item.color] -= item.qty;
+    product.stock = newStock;
+    await product.save();
+
+    return { isVerified: true };
+};
+
+productController.checkItemListStock = async (itemList) => {
+    const insufficientStock = [];
+
+    await Promise.all(
+        itemList.map(async (item) => {
+            const stockCheck = await productController.checkStock(item);
+            if (!stockCheck.isVerified) {
+                insufficientStock.push({ item, message: stockCheck.message });
+            }
+            return stockCheck;
+        })
+    );
+
+    return insufficientStock;
+};
 module.exports = productController;
