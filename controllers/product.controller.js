@@ -1,7 +1,7 @@
 const productController = {};
 
 const Product = require("../models/Product");
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 4;
 
 productController.createProduct = async (req, res) => {
     try {
@@ -110,16 +110,31 @@ productController.checkStock = async (item) => {
 
 productController.checkItemListStock = async (itemList) => {
     const insufficientStock = [];
+    const productsToUpdate = [];
 
-    await Promise.all(
-        itemList.map(async (item) => {
-            const stockCheck = await productController.checkStock(item);
-            if (!stockCheck.isVerified) {
-                insufficientStock.push({ item, message: stockCheck.message });
-            }
-            return stockCheck;
-        })
-    );
+    for (const item of itemList) {
+        const product = await Product.findById(item.productId);
+
+        if (product.stock[item.color] < item.qty) {
+            insufficientStock.push({
+                item,
+                message: `${product.name} ${item.color} 색상의 재고가 부족합니다.`,
+            });
+        } else {
+            productsToUpdate.push({ product, item });
+        }
+    }
+
+    if (insufficientStock.length > 0) {
+        return insufficientStock;
+    }
+
+    for (const { product, item } of productsToUpdate) {
+        const newStock = { ...product.stock };
+        newStock[item.color] -= item.qty;
+        product.stock = newStock;
+        await product.save();
+    }
 
     return insufficientStock;
 };
