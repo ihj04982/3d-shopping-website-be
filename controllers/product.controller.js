@@ -33,8 +33,17 @@ productController.createProduct = async (req, res) => {
 
 productController.getProducts = async (req, res) => {
     try {
-        const { page, name } = req.query;
-        const condition = name ? { name: { $regex: name, $options: "i" } } : {};
+        const { page, name, category } = req.query;
+        const condition = {};
+
+        if (name) {
+            condition.name = { $regex: name, $options: "i" };
+        }
+
+        if (category) {
+            condition.category = { $in: [category] };
+        }
+
         let query = Product.find(condition);
         let response = { status: "success" };
         if (page) {
@@ -94,6 +103,7 @@ productController.deleteProduct = async (req, res) => {
         res.status(400).json({ status: "error", message: error.message });
     }
 };
+
 productController.checkStock = async (item) => {
     const product = await Product.findById(item.productId);
 

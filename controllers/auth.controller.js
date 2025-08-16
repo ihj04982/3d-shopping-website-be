@@ -2,8 +2,10 @@ const authController = {};
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 
-const jwtSecretKey = process.env.JWT_SECRET_KEY;
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 authController.loginWithEmail = async (req, res) => {
     try {
@@ -27,6 +29,30 @@ authController.loginWithEmail = async (req, res) => {
     }
 };
 
+authController.loginWithGoogle = async (req, res) => {
+    try {
+        const { token } = req.body;
+        const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: GOOGLE_CLIENT_ID,
+        });
+        const { email, name } = ticket.getPayload();
+        let user = await User.findOne({ email });
+        if (!user) {
+            const randomPassword = "" + Math.floor(Math.random() * 100000000);
+            const salt = bcrypt.genSaltSync(10);
+            const newPassword = bcrypt.hashSync(randomPassword, salt);
+            user = new User({ email, name, password: newPassword });
+            await user.save();
+        }
+        const sessionToken = await user.generateAuthToken();
+        return res.status(200).json({ status: "success", user, token: sessionToken });
+    } catch (error) {
+        res.status(400).json({ status: "error", message: error.message });
+    }
+};
+
 authController.authenticate = (req, res, next) => {
     try {
         const tokenString = req.headers.authorization;
@@ -35,7 +61,7 @@ authController.authenticate = (req, res, next) => {
         }
         const token = tokenString.replace("Bearer ", "");
 
-        jwt.verify(token, jwtSecretKey, (error, payload) => {
+        jwt.verify(token, JWT_SECRET_KEY, (error, payload) => {
             if (error) {
                 throw new Error("토큰이 유효하지 않습니다.");
             }
